@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 
 	"github.com/grma16021/gator/internal/config"
+	"github.com/grma16021/gator/internal/database"
+	_ "github.com/lib/pq"
 )
 
 type state struct {
+	db   *database.Queries
 	conf *config.Config
 }
 
@@ -40,6 +44,9 @@ func main() {
 	conf, _ := config.Read()
 	fmt.Println("config :", conf)
 
+	db, err := sql.Open("postgres", conf.Db_url)
+
+	dbQueries := database.New(db)
 	stat := state{conf: &conf}
 
 	cmds := commands{
@@ -59,9 +66,10 @@ func main() {
 	cmdArgs := args[2:]
 
 	cmds.register("login", handlerLogin)
+	cmds.register("register", handlerRegister)
 	c := command{name: cmdName, args: cmdArgs}
 
-	err := cmds.run(&stat, c)
+	err = cmds.run(&stat, c)
 	if err != nil {
 		fmt.Println("error ", err)
 	}
@@ -69,6 +77,11 @@ func main() {
 	fmt.Println("config user :", conf.Current_user_name)
 	fmt.Println("config db :", conf.Db_url)
 
+}
+
+func handlerRegister(s *state, cmd command) error {
+	//add register stuff here
+	return nil
 }
 
 func handlerLogin(s *state, cmd command) error {
