@@ -10,7 +10,7 @@ import (
 )
 
 type User struct {
-	ID        sql.NullInt32
+	ID        sql.NullString
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string

@@ -1,6 +1,6 @@
 -- +goose Up
 Create TABLE users(
-    id int UNIQUE,
+    id TEXT UNIQUE,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL,
     name VARCHAR(50) NOT NULL

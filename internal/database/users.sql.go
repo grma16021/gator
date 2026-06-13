@@ -23,7 +23,7 @@ RETURNING id, created_at, updated_at, name
 `
 
 type CreateUserParams struct {
-	ID        sql.NullInt32
+	ID        sql.NullString
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
@@ -46,13 +46,54 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const getUser = `-- name: GetUser :one
-SELECT name FROM users
+const deleteUsers = `-- name: DeleteUsers :exec
+DELETE FROM users
 `
 
-func (q *Queries) GetUser(ctx context.Context) (string, error) {
-	row := q.db.QueryRowContext(ctx, getUser)
-	var name string
-	err := row.Scan(&name)
-	return name, err
+func (q *Queries) DeleteUsers(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, deleteUsers)
+	return err
+}
+
+const getUser = `-- name: GetUser :one
+SELECT name FROM users WHERE name = $1
+`
+
+func (q *Queries) GetUser(ctx context.Context, name string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUser, name)
+	var name_2 string
+	err := row.Scan(&name_2)
+	return name_2, err
+}
+
+const getUsers = `-- name: GetUsers :many
+SELECT id, created_at, updated_at, name FROM users
+`
+
+func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
