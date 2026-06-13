@@ -127,6 +127,7 @@ func main() {
 	cmds.register("reset", handlerReset)
 	cmds.register("users", handlerUsers)
 	cmds.register("agg", handlerAgg)
+	cmds.register("addfeed", handlerAddFeed)
 	c := command{name: cmdName, args: cmdArgs}
 
 	err = cmds.run(&stat, c)
@@ -148,13 +149,13 @@ func handlerRegister(s *state, cmd command) error {
 	if err != nil {
 		fmt.Errorf("error searching for user")
 	}
-	if fuser == userName {
+	if fuser.Name == userName {
 		os.Exit(1)
 	}
 	user := database.CreateUserParams{}
 	id := uuid.New()
 
-	user.ID.String = id.String()
+	user.ID = id.String()
 	user.Name = cmd.args[0]
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
@@ -182,12 +183,12 @@ func handlerLogin(s *state, cmd command) error {
 		fmt.Errorf("error fetching user", err)
 
 	}
-	if uName == "" {
+	if uName.Name == "" {
 		fmt.Println("user does not exist")
 		os.Exit(1)
 	}
 
-	s.conf.Current_user_name = uName
+	s.conf.Current_user_name = uName.Name
 	s.conf.SetUser(s.conf.Current_user_name)
 
 	fmt.Println("The username has been set to: " + cmd.args[0])
@@ -225,6 +226,32 @@ func handlerUsers(s *state, cmd command) error {
 
 	}
 
+	return nil
+}
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.args) < 2 {
+		os.Exit(1)
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.conf.Current_user_name)
+	if err != nil {
+		fmt.Errorf("error fetching user", err)
+	}
+
+	feed := database.CreateFeedParams{}
+	feed.ID = uuid.NewString()
+	feed.UserID = user.ID
+	feed.Name.String = cmd.name
+	feed.Url.String = cmd.args[0]
+	feed.CreatedAt = time.Now()
+	feed.UpdatedAt = time.Now()
+	createdFeed, err := s.db.CreateFeed(context.Background(), feed)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(createdFeed)
 	return nil
 }
 

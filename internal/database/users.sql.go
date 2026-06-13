@@ -11,6 +11,49 @@ import (
 	"time"
 )
 
+const createFeed = `-- name: CreateFeed :one
+INSERT INTO feeds (id, user_id, name, url, created_at, updated_at)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6
+)
+RETURNING id, user_id, name, url, created_at, updated_at
+`
+
+type CreateFeedParams struct {
+	ID        string
+	UserID    string
+	Name      sql.NullString
+	Url       sql.NullString
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, createFeed,
+		arg.ID,
+		arg.UserID,
+		arg.Name,
+		arg.Url,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var i Feed
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Url,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, created_at, updated_at, name)
 values (
@@ -19,11 +62,11 @@ values (
     $3,
     $4
 )
-RETURNING id, created_at, updated_at, name
+RETURNING id, name, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	ID        sql.NullString
+	ID        string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Name      string
@@ -39,9 +82,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	var i User
 	err := row.Scan(
 		&i.ID,
+		&i.Name,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Name,
 	)
 	return i, err
 }
@@ -56,18 +99,23 @@ func (q *Queries) DeleteUsers(ctx context.Context) error {
 }
 
 const getUser = `-- name: GetUser :one
-SELECT name FROM users WHERE name = $1
+SELECT id, name, created_at, updated_at FROM users WHERE name = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, name string) (string, error) {
+func (q *Queries) GetUser(ctx context.Context, name string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUser, name)
-	var name_2 string
-	err := row.Scan(&name_2)
-	return name_2, err
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, created_at, updated_at, name FROM users
+SELECT id, name, created_at, updated_at FROM users
 `
 
 func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
@@ -81,9 +129,9 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 		var i User
 		if err := rows.Scan(
 			&i.ID,
+			&i.Name,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Name,
 		); err != nil {
 			return nil, err
 		}
